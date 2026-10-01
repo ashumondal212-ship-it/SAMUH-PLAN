@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E6B63">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plan">
+<title>Monthly Plan</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<style>
+:root{
+  --paper:#F1F4F2;--card:#fff;--ink:#17252A;--muted:#5A6D71;--line:#D8E0DD;
+  --brand:#0E6B63;--on-brand:#fff;--warn:#B3412E;--warn-bg:#FAE9E5;--ok-bg:#E3F1EE;
+  --p0:#0E6B63;--p1:#E0A100;--p2:#5B4B9A;--p3:#2F7DB8;--p4:#8A9A2B;--p5:#B5527A;--p6:#3F5560;--p7:#C77D3F;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#0F1A1B;--card:#172427;--ink:#E6EEEC;--muted:#93A8AB;--line:#2A3B3E;
+    --brand:#3FB5A8;--on-brand:#06201D;--warn:#E5806C;--warn-bg:#3A201B;--ok-bg:#16322F}
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:400 16px/1.45 var(--body);-webkit-text-size-adjust:100%;padding-top:env(safe-area-inset-top,0px)}
+body.lock{overflow:hidden}
+#app{max-width:520px;margin:0 auto;padding:0 16px calc(88px + env(safe-area-inset-bottom,0px))}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0;text-align:left}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+h1,h2{margin:0}
+
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:16px 0 8px}
+.top h1{font:700 22px/1.1 var(--display)}
+.mnav{display:flex;align-items:center}
+.mnav h1{font-size:20px;padding:0 2px}
+.iconbtn{width:40px;height:44px;display:grid;place-items:center;font-size:24px;border-radius:10px}
+.iconbtn:active{background:var(--line)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 18px;border-radius:12px;font-weight:600;text-align:center}
+.btn.block{display:flex;width:100%}
+.btn.primary{background:var(--brand);color:var(--on-brand)}
+.btn.ghost{border:1.5px solid var(--line)}
+.btn.danger{color:var(--warn);border:1.5px solid var(--warn)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.link{display:inline;color:var(--brand);font-weight:600;text-decoration:underline}
+
+.sum{padding:8px 0 18px}
+.sum .big{font:700 46px/1 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sum .cap{color:var(--muted);margin:6px 0 14px}
+.share{display:flex;height:14px;gap:2px;border-radius:7px;overflow:hidden;background:var(--line)}
+.share span{min-width:3px}
+
+.plant{background:var(--card);border:1px solid var(--line);border-radius:16px;margin:0 0 12px;overflow:hidden}
+.ph{display:flex;align-items:stretch}
+.phead{flex:1;min-width:0;display:flex;align-items:center;gap:10px;min-height:58px;padding:0 4px 0 14px}
+.sw{width:12px;height:12px;border-radius:4px;flex:none}
+.pname{font:700 18px var(--display);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptotal{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+.tag{flex:none;font-size:12px;font-weight:600;background:var(--warn-bg);color:var(--warn);padding:2px 8px;border-radius:99px}
+.more{width:52px;display:grid;place-items:center;font-size:22px;color:var(--muted)}
+.lines{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.line{display:flex;justify-content:space-between;align-items:baseline;gap:12px;width:100%;min-height:50px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.lines li:last-child .line{border-bottom:0}
+.sku small{display:block;color:var(--muted);font-size:13px;font-weight:400}
+.qty{font-weight:600;font-variant-numeric:tabular-nums}
+.line.off .sku b,.line.off .qty{text-decoration:line-through;color:var(--muted)}
+
+.empty{padding:36px 4px;text-align:center}
+.empty h2{font:700 20px var(--display);margin-bottom:6px}
+.empty p{color:var(--muted);margin:0 0 18px}
+.center{padding:20vh 8px 0;text-align:center}
+.center p{color:var(--muted)}
+.login{padding-top:10vh}
+.login h1{font:700 30px/1.1 var(--display);margin:18px 0 6px}
+.login p{color:var(--muted);margin:0 0 8px}
+.mark{display:flex;gap:2px;width:84px;height:14px;border-radius:7px;overflow:hidden}
+.mark i{display:block}
+.err{color:var(--warn);font-weight:500;min-height:1.4em;margin:10px 0 0}
+
+.prow{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.prow .pi{flex:1;min-width:0}
+.prow b{display:block}
+.prow small,.meta{color:var(--muted);font-size:14px}
+.pm{text-align:right;font-size:14px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.plist{list-style:none;padding:0;margin:0}
+.log{list-style:none;margin:0;padding:0}
+.log li{padding:12px 0;border-bottom:1px solid var(--line)}
+.log b{display:block}
+.log small{display:block;color:var(--muted);font-size:13px}
+.who{padding:22px 0 0}
+
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav div{display:flex;max-width:520px;margin:0 auto}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:58px;padding:8px 0;font-size:12px;font-weight:600;color:var(--muted)}
+.nav button[aria-current=page]{color:var(--brand)}
+.nav svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.scrim{position:fixed;inset:0;background:rgba(10,20,20,.45);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:520px;margin:0 auto;background:var(--card);border-radius:20px 20px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom,0px));max-height:90vh;overflow:auto;animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.6}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.sheet h2{font:700 20px var(--display);margin:4px 0 4px}
+.sheet .meta{margin:0 0 4px}
+label{display:block;font-size:14px;font-weight:600;margin:14px 0 0}
+input,select{display:block;width:100%;min-height:46px;margin-top:6px;padding:0 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper)}
+.mt{margin-top:14px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.stat{background:var(--paper);border-radius:10px;padding:10px}
+.stat b{display:block;font:700 20px var(--display);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.note{background:var(--ok-bg);padding:10px 12px;border-radius:10px;font-size:14px;margin:12px 0 0}
+.note.warn{background:var(--warn-bg);color:var(--warn)}
+.plist li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
+.plist span:last-child{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+#toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);max-width:92%;background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:12px;z-index:40;font-weight:500;display:none;text-align:center}
+#toast.show{display:block}
+#toast.err{background:var(--warn);color:#fff}
+.bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--brand);z-index:50;animation:slide 1s linear infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){.sheet,.bar{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="sheet-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// Paste your Apps Script Web app URL here, or leave empty and enter it on the sign-in screen.
+const API_URL = '';
+
+const PALETTE = 8;
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('en-IN');
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { localStorage.setItem(k,v); } catch(e){} },
+  del(k){ try { localStorage.removeItem(k); } catch(e){} }
+};
+const ym = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const shiftMonth = (m, d) => { const [y, mo] = m.split('-').map(Number); return ym(new Date(y, mo - 1 + d, 1)); };
+const monthLabel = m => { const [y, mo] = m.split('-').map(Number); return new Date(y, mo - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }); };
+
+const S = {
+  api: API_URL || store.get('planapi') || '',
+  pin: store.get('planpin') || '',
+  user: '', data: null, month: ym(new Date()), tab: 'plan',
+  open: {}, busy: false, status: 'boot', err: '', offline: false
+};
+
+/* ---------- backend ---------- */
+async function call(action, payload) {
+  if (!S.api) throw new Error('The backend link is not set.');
+  let res;
+  try {
+    res = await fetch(S.api, { method: 'POST', body: JSON.stringify(Object.assign({ pin: S.pin, action }, payload || {})) });
+  } catch (e) { throw new Error('No connection. Nothing was saved.'); }
+  let json;
+  try { json = await res.json(); } catch (e) { throw new Error('The backend sent an unexpected reply. Check the deployment link and access setting.'); }
+  if (!json.ok) throw new Error(json.error || 'Something went wrong.');
+  return json;
+}
+function setData(j) { S.data = j; S.user = j.user; S.offline = false; store.set('plancache', JSON.stringify(j)); }
+
+async function act(action, payload, okMsg) {
+  S.busy = true; render();
+  let ok = false;
+  try {
+    setData(await call(action, payload));
+    ok = true;
+    closeSheet();
+    if (okMsg) toast(okMsg);
+  } catch (e) { toast(e.message, true); }
+  S.busy = false; render();
+  return ok;
+}
+async function refresh() { try { setData(await call('load')); render(); } catch (e) {} }
+
+async function boot() {
+  if (!S.api || !S.pin) { S.status = 'login'; return render(); }
+  S.status = 'boot'; render();
+  try { setData(await call('load')); S.status = 'ready'; }
+  catch (e) {
+    if (/wrong pin/i.test(e.message)) { S.pin = ''; store.del('planpin'); S.status = 'login'; S.err = 'That PIN was not accepted.'; }
+    else {
+      const c = store.get('plancache');
+      if (c) { try { S.data = JSON.parse(c); S.user = S.data.user; S.offline = true; S.status = 'ready'; } catch (_) { S.status = 'error'; S.err = e.message; } }
+      else { S.status = 'error'; S.err = e.message; }
+    }
+  }
+  render();
+}
+
+/* ---------- derived data ---------- */
+const monthLines = () => S.data.lines.filter(l => l.month === S.month);
+const sumActive = ls => ls.filter(l => l.status === 'Active').reduce((s, l) => s + l.qty, 0);
+function groups() {
+  const by = {};
+  monthLines().forEach(l => (by[l.plant] = by[l.plant] || []).push(l));
+  return S.data.plants.map((p, idx) => ({ plant: p, idx, lines: by[p.name] || [] })).filter(g => g.lines.length);
+}
+
+/* ---------- rendering ---------- */
+function render() {
+  const app = $('#app');
+  const bar = S.busy ? '<div class="bar"></div>' : '';
+  if (S.status === 'boot') { app.innerHTML = bar + '<div class="center"><p>Loading the plan...</p></div>'; return; }
+  if (S.status === 'error') {
+    app.innerHTML = `<div class="center"><h2>Can't reach the plan</h2><p>${esc(S.err)}</p><button class="btn primary" data-act="retry">Try again</button></div>`;
+    return;
+  }
+  if (S.status === 'login') { app.innerHTML = bar + loginHtml(); return; }
+  const body = S.tab === 'plan' ? renderPlan() : S.tab === 'plants' ? renderPlants() : renderHistory();
+  const off = S.offline ? '<p class="note warn">You are offline. This is the last saved plan, and edits will not save until you reconnect.</p>' : '';
+  app.innerHTML = bar + off + body + navHtml();
+}
+
+function loginHtml() {
+  const colors = ['#E0A100', '#0E6B63', '#5B4B9A', '#2F7DB8'];
+  const w = [40, 30, 20, 10];
+  return `<main class="login">
+    <div class="mark" aria-hidden="true">${colors.map((c, i) => `<i style="width:${w[i]}%;background:${c}"></i>`).join('')}</div>
+    <h1>Monthly plan</h1>
+    <p>Sign in to manage the plan for every plant.</p>
+    <form id="loginForm">
+      ${S.api && API_URL ? '' : `<label>Backend link<input name="api" type="url" inputmode="url" autocomplete="off" value="${esc(S.api)}" placeholder="https://script.google.com/macros/s/..."></label>`}
+      <label>PIN<input name="pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
+      <p class="err">${esc(S.err)}</p>
+      <button class="btn primary block" type="submit">Sign in</button>
+    </form>
+  </main>`;
+}
+
+function navHtml() {
+  const t = (id, label, svg) => `<button data-act="tab" data-tab="${id}"${S.tab === id ? ' aria-current="page"' : ''}>${svg}${label}</button>`;
+  return `<nav class="nav" aria-label="Main"><div>
+    ${t('plan', 'Plan', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>')}
+    ${t('plants', 'Plants', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V9l6 4V9l6 4V5h6v15z"/></svg>')}
+    ${t('history', 'History', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>')}
+  </div></nav>`;
+}
+
+function lineRow(l) {
+  const off = l.status === 'Cancelled';
+  const sub = off ? `Cancelled: ${esc(l.reason)}` : esc(l.note);
+  return `<li><button class="line${off ? ' off' : ''}" data-act="line" data-id="${esc(l.id)}">
+    <span class="sku"><b>${esc(l.sku)}</b>${sub ? `<small>${sub}</small>` : ''}</span>
+    <span class="qty">${fmt(l.qty)}</span></button></li>`;
+}
+
+function renderPlan() {
+  const lines = monthLines();
+  const total = sumActive(lines);
+  const ver = S.data.versions[S.month];
+  const gs = groups();
+  const head = `<div class="top"><div class="mnav">
+      <button class="iconbtn" data-act="prev" aria-label="Previous month">&lsaquo;</button>
+      <h1>${monthLabel(S.month)}</h1>
+      <button class="iconbtn" data-act="next" aria-label="Next month">&rsaquo;</button></div>
+    ${lines.length ? '<button class="btn ghost" data-act="upload">Upload plan</button>' : ''}</div>`;
+  if (!lines.length) {
+    return head + `<div class="empty"><h2>No plan for ${monthLabel(S.month)}</h2>
+      <p>Upload an Excel or CSV file with plant, SKU and quantity columns.</p>
+      <button class="btn primary" data-act="upload">Upload plan</button></div>`;
+  }
+  const segs = gs.map(g => { const t = sumActive(g.lines); return t > 0 ? `<span style="flex:${t};background:var(--p${g.idx % PALETTE})" title="${esc(g.plant.name)}"></span>` : ''; }).join('');
+  const sum = `<div class="sum"><div class="big">${fmt(total)}</div>
+    <p class="cap">planned for ${monthLabel(S.month)}${ver ? ', plan v' + ver : ''}</p>
+    <div class="share" role="img" aria-label="Share of the plan by plant">${segs}</div></div>`;
+  const sections = gs.map(g => {
+    const key = S.month + '|' + g.plant.name;
+    const open = S.open[key] !== false;
+    const allOff = g.lines.every(l => l.status === 'Cancelled');
+    return `<section class="plant"><div class="ph">
+      <button class="phead" data-act="toggle" data-key="${esc(key)}" aria-expanded="${open}">
+        <i class="sw" style="background:var(--p${g.idx % PALETTE})"></i>
+        <span class="pname">${esc(g.plant.name)}</span>
+        ${allOff ? '<span class="tag">Plan cancelled</span>' : ''}
+        <span class="ptotal">${fmt(sumActive(g.lines))}</span></button>
+      <button class="more" data-act="plantmenu" data-plant="${esc(g.plant.name)}" aria-label="Actions for ${esc(g.plant.name)}">&#8942;</button></div>
+      ${open ? `<ul class="lines">${g.lines.map(lineRow).join('')}</ul>` : ''}</section>`;
+  }).join('');
+  return head + sum + sections;
+}
+
+function renderPlants() {
+  const rows = S.data.plants.map((p, i) => {
+    const ls = monthLines().filter(l => l.plant === p.name);
+    const right = ls.length ? `${ls.filter(l => l.status === 'Active').length} active lines<br>${fmt(sumActive(ls))}` : 'Not planned';
+    return `<li class="prow"><i class="sw" style="background:var(--p${i % PALETTE})"></i>
+      <span class="pi"><b>${esc(p.name)}</b><small>${esc(p.location || 'No location added')}</small></span>
+      <span class="pm">${right}</span></li>`;
+  }).join('');
+  return `<div class="top"><h1>Plants</h1><button class="btn primary" data-act="addplant">Add plant</button></div>
+    <p class="meta" style="margin:0 0 4px">Planned quantities are for ${monthLabel(S.month)}.</p>
+    ${rows ? `<ul class="plist">${rows}</ul>` : '<div class="empty"><h2>No plants yet</h2><p>Add a plant, or upload a plan and its plants are added for you.</p></div>'}
+    <div class="who"><p class="meta">Signed in as ${esc(S.user)}.</p><button class="btn ghost" data-act="signout">Sign out</button></div>`;
+}
+
+function renderHistory() {
+  const items = S.data.log.map(x => {
+    const where = [x.plant, x.sku].filter(Boolean).join(', ');
+    const when = x.month ? monthLabel(x.month) : '';
+    const line2 = where && when ? `${where} in ${when}` : where || when;
+    return `<li><b>${esc(x.action)}</b>${line2 ? `<small>${esc(line2)}</small>` : ''}
+      ${x.detail ? `<small>${esc(x.detail)}</small>` : ''}${x.reason ? `<small>Reason: ${esc(x.reason)}</small>` : ''}
+      <small>${esc(x.user)} on ${esc(x.time)}</small></li>`;
+  }).join('');
+  return `<div class="top"><h1>History</h1></div>
+    ${items ? `<ul class="log">${items}</ul>` : '<div class="empty"><h2>No changes yet</h2><p>Every upload, edit and cancellation shows up here.</p></div>'}`;
+}
+
+/* ---------- sheets ---------- */
+function openSheet(title, html, onMount) {
+  $('#sheet-root').innerHTML = `<div class="scrim" data-act="closeSheet"></div>
+    <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="grab"></div><h2>${esc(title)}</h2>${html}</div>`;
+  document.body.classList.add('lock');
+  if (onMount) onMount($('#sheet-root .sheet'));
+}
+function closeSheet() { $('#sheet-root').innerHTML = ''; document.body.classList.remove('lock'); }
+
+function reasonBlock(openLabel, confirmLabel) {
+  return `<button class="btn ghost block mt" id="cxopen">${openLabel}</button>
+    <div id="cx" hidden><label>Reason for cancelling<input id="r" type="text" maxlength="160" placeholder="For example, raw material delay"></label>
+    <button class="btn danger block mt" id="cxgo">${confirmLabel}</button></div>`;
+}
+function wireReason(sh, onConfirm) {
+  sh.querySelector('#cxopen').onclick = e => { sh.querySelector('#cx').hidden = false; e.currentTarget.hidden = true; sh.querySelector('#r').focus(); };
+  sh.querySelector('#cxgo').onclick = () => {
+    const r = sh.querySelector('#r').value.trim();
+    if (!r) return toast('Add a reason before cancelling', true);
+    onConfirm(r);
+  };
+}
+
+function sheetLine(id) {
+  const l = S.data.lines.find(x => x.id === id);
+  if (!l) return;
+  if (l.status === 'Cancelled') {
+    openSheet(l.sku, `<p class="meta">${esc(l.plant)}, ${fmt(l.qty)} planned.<br>Cancelled: ${esc(l.reason)}</p>
+      <button class="btn primary block mt" id="restore">Restore line</button>`,
+      sh => { sh.querySelector('#restore').onclick = () => act('restoreLine', { id }, 'Line restored'); });
+    return;
+  }
+  openSheet(l.sku, `<p class="meta">${esc(l.plant)}, ${monthLabel(l.month)}</p>
+    <label>Quantity<input id="q" type="number" inputmode="numeric" min="0" value="${l.qty}"></label>
+    <label>Note<input id="n" type="text" maxlength="120" value="${esc(l.note)}"></label>
+    <button class="btn primary block mt" id="save">Save changes</button>
+    ${reasonBlock('Cancel planning for this line', 'Confirm cancellation')}`,
+    sh => {
+      sh.querySelector('#save').onclick = () => {
+        const raw = sh.querySelector('#q').value, qty = Number(raw);
+        if (raw === '' || !isFinite(qty) || qty < 0) return toast('Enter a quantity of 0 or more', true);
+        act('updateLine', { id, qty, note: sh.querySelector('#n').value }, 'Changes saved');
+      };
+      wireReason(sh, reason => act('cancelLine', { id, reason }, 'Line cancelled'));
+    });
+}
+
+function sheetPlant(name) {
+  const ls = monthLines().filter(l => l.plant === name);
+  const on = ls.filter(l => l.status === 'Active'), off = ls.filter(l => l.status === 'Cancelled');
+  openSheet(name, `<p class="meta">${monthLabel(S.month)}: ${on.length} active line${on.length === 1 ? '' : 's'}${off.length ? `, ${off.length} cancelled` : ''}</p>
+    <button class="btn primary block mt" id="add">Add SKU line</button>
+    ${on.length ? reasonBlock(`Cancel planning for ${esc(name)}`, 'Confirm cancellation') : ''}
+    ${off.length ? `<button class="btn ghost block mt" id="restore">Restore ${off.length} cancelled line${off.length === 1 ? '' : 's'}</button>` : ''}`,
+    sh => {
+      sh.querySelector('#add').onclick = () => sheetAddLine(name);
+      if (on.length) wireReason(sh, reason => act('cancelPlant', { month: S.month, plant: name, reason }, 'Plan cancelled for ' + name));
+      if (off.length) sh.querySelector('#restore').onclick = () => act('restorePlant', { month: S.month, plant: name }, 'Plan restored for ' + name);
+    });
+}
+
+function sheetAddLine(plant) {
+  if (!S.data.plants.length) return toast('Add a plant first', true);
+  const opts = S.data.plants.map(p => `<option${p.name === plant ? ' selected' : ''}>${esc(p.name)}</option>`).join('');
+  const skus = [...new Set(S.data.lines.map(l => l.sku))].sort();
+  openSheet('Add SKU line', `<p class="meta">${monthLabel(S.month)}</p>
+    <label>Plant<select id="p">${opts}</select></label>
+    <label>SKU<input id="s" type="text" list="skus" maxlength="80" autocomplete="off"></label>
+    <datalist id="skus">${skus.map(s => `<option value="${esc(s)}">`).join('')}</datalist>
+    <label>Quantity<input id="q" type="number" inputmode="numeric" min="0"></label>
+    <label>Note (optional)<input id="n" type="text" maxlength="120"></label>
+    <button class="btn primary block mt" id="go">Add line</button>`,
+    sh => {
+      sh.querySelector('#go').onclick = () => {
+        const sku = sh.querySelector('#s').value.trim(), raw = sh.querySelector('#q').value, qty = Number(raw);
+        if (!sku) return toast('Enter a SKU', true);
+        if (raw === '' || !isFinite(qty) || qty < 0) return toast('Enter a quantity of 0 or more', true);
+        act('addLine', { month: S.month, plant: sh.querySelector('#p').value, sku, qty, note: sh.querySelector('#n').value }, 'Line added');
+      };
+    });
+}
+
+function sheetAddPlant() {
+  openSheet('Add plant', `<label>Plant name<input id="n" type="text" maxlength="80" autocomplete="off"></label>
+    <label>Location (optional)<input id="l" type="text" maxlength="80"></label>
+    <button class="btn primary block mt" id="go">Add plant</button>`,
+    sh => {
+      sh.querySelector('#go').onclick = () => {
+        const name = sh.querySelector('#n').value.trim();
+        if (!name) return toast('Enter a plant name', true);
+        act('addPlant', { name, location: sh.querySelector('#l').value }, 'Plant added');
+      };
+    });
+}
+
+function parseRows(raw) {
+  if (!raw.length) throw new Error('The file has no rows.');
+  const keys = Object.keys(raw[0]);
+  const pick = re => keys.find(k => re.test(String(k).trim().toLowerCase()));
+  const kp = pick(/^(plant|factory|unit)( name)?$/);
+  const ks = pick(/^(sku|variety|product|item)( name)?$/);
+  const kq = pick(/^(qty|quantity|plan|planned|plan qty|planned qty|target)$/);
+  const kn = pick(/^(note|notes|remark|remarks|comment|comments)$/);
+  if (!kp || !ks || !kq) throw new Error('Could not find Plant, SKU and Qty columns in the first row. Columns found: ' + keys.join(', '));
+  const canon = {};
+  S.data.plants.forEach(p => { canon[p.name.toLowerCase()] = p.name; });
+  const map = {}, errors = [];
+  let dupes = 0;
+  raw.forEach((r, i) => {
+    const plant = String(r[kp]).trim(), sku = String(r[ks]).trim(), qs = String(r[kq]).replace(/,/g, '').trim();
+    if (!plant && !sku && !qs) return;
+    const qty = Number(qs);
+    if (!plant || !sku || qs === '' || !isFinite(qty) || qty < 0) { errors.push('Row ' + (i + 2) + ' needs a plant, a SKU and a quantity of 0 or more'); return; }
+    const pk = plant.toLowerCase();
+    const pn = canon[pk] || (canon[pk] = plant);
+    const key = pk + '|' + sku.toLowerCase();
+    if (map[key]) { map[key].qty += qty; dupes++; }
+    else map[key] = { plant: pn, sku, qty, note: kn ? String(r[kn]).trim() : '' };
+  });
+  const rows = Object.values(map);
+  if (!rows.length && !errors.length) throw new Error('The file has no plan rows.');
+  return { rows, errors, dupes };
+}
+
+function sheetUpload() {
+  openSheet('Upload plan', `<label>Month<input id="m" type="month" value="${S.month}"></label>
+    <label>Excel or CSV file<input id="f" type="file" accept=".xlsx,.xls,.csv"></label>
+    <p class="meta mt">Needs Plant, SKU and Qty columns in the first row. Note is optional. <button class="link" id="tpl">Get a template</button></p>
+    <div id="pv"></div>
+    <button class="btn primary block mt" id="go" disabled>Upload plan</button>`,
+    sh => {
+      let rows = null, dupes = 0;
+      const $m = sh.querySelector('#m'), $f = sh.querySelector('#f'), $pv = sh.querySelector('#pv'), $go = sh.querySelector('#go');
+      const warn = msg => { $pv.innerHTML = `<div class="note warn">${msg}</div>`; $go.disabled = true; };
+      const paint = () => {
+        if (!rows) { $pv.innerHTML = ''; $go.disabled = true; return; }
+        const m = $m.value;
+        if (!m) return warn('Pick the month this plan is for.');
+        const existing = S.data.lines.filter(l => l.month === m);
+        const v = S.data.versions[m] || 0;
+        const known = new Set(S.data.plants.map(p => p.name.toLowerCase()));
+        const by = {};
+        rows.forEach(r => { const o = by[r.plant] || (by[r.plant] = { n: 0, q: 0 }); o.n++; o.q += r.qty; });
+        const names = Object.keys(by);
+        const fresh = names.filter(n => !known.has(n.toLowerCase()));
+        const total = rows.reduce((s, r) => s + r.qty, 0);
+        const replaces = existing.length
+          ? `<div class="note warn">This replaces plan v${v} for ${monthLabel(m)} (${fmt(sumActive(existing))} planned) with v${v + 1}. The old version is kept in the Google Sheet.</div>`
+          : `<div class="note">This is the first plan for ${monthLabel(m)}.</div>`;
+        $pv.innerHTML = `<div class="stats">
+            <div class="stat"><b>${rows.length}</b><span>lines</span></div>
+            <div class="stat"><b>${names.length}</b><span>plants</span></div>
+            <div class="stat"><b>${fmt(total)}</b><span>total qty</span></div></div>
+          <ul class="plist mt">${names.map(n => `<li><span>${esc(n)}</span><span>${by[n].n} lines, ${fmt(by[n].q)}</span></li>`).join('')}</ul>
+          ${fresh.length ? `<div class="note">New plants will be added: ${esc(fresh.join(', '))}.</div>` : ''}
+          ${dupes ? `<div class="note">${dupes} duplicate row${dupes === 1 ? ' was' : 's were'} combined.</div>` : ''}
+          ${replaces}`;
+        $go.disabled = false;
+      };
+      $f.onchange = async () => {
+        const file = $f.files[0];
+        rows = null;
+        if (!file) return paint();
+        if (!window.XLSX) return warn('The Excel reader did not load. Check your connection and reopen the app.');
+        try {
+          const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+          const raw = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
+          const res = parseRows(raw);
+          if (res.errors.length) {
+            const more = res.errors.length > 5 ? `<br>and ${res.errors.length - 5} more` : '';
+            return warn('<b>Fix these rows and choose the file again</b><br>' + res.errors.slice(0, 5).map(esc).join('<br>') + more);
+          }
+          rows = res.rows; dupes = res.dupes; paint();
+        } catch (e) { warn(esc(e.message)); }
+      };
+      $m.onchange = paint;
+      sh.querySelector('#tpl').onclick = () => {
+        const blob = new Blob(['Plant,SKU,Qty,Note\nPlant name,SKU name,1000,\n'], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = 'plan-template.csv'; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      };
+      $go.onclick = async () => {
+        if (!rows || !$m.value) return;
+        const m = $m.value;
+        if (await act('uploadPlan', { month: m, rows }, 'Plan uploaded')) { S.month = m; render(); }
+      };
+    });
+}
+
+/* ---------- events ---------- */
+let tt;
+function toast(msg, err) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'show' + (err ? ' err' : '');
+  clearTimeout(tt); tt = setTimeout(() => { t.className = ''; }, err ? 4500 : 2200);
+}
+
+const H = {
+  prev() { S.month = shiftMonth(S.month, -1); render(); },
+  next() { S.month = shiftMonth(S.month, 1); render(); },
+  tab(el) { S.tab = el.dataset.tab; render(); window.scrollTo(0, 0); },
+  toggle(el) { const k = el.dataset.key; S.open[k] = S.open[k] === false; render(); },
+  closeSheet() { closeSheet(); },
+  line(el) { sheetLine(el.dataset.id); },
+  plantmenu(el) { sheetPlant(el.dataset.plant); },
+  upload() { sheetUpload(); },
+  addplant() { sheetAddPlant(); },
+  retry() { boot(); },
+  signout() { S.pin = ''; store.del('planpin'); store.del('plancache'); S.data = null; S.err = ''; S.status = 'login'; render(); }
+};
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (el && H[el.dataset.act]) H[el.dataset.act](el);
+});
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'loginForm') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const api = String(f.get('api') || S.api || '').trim(), pin = String(f.get('pin') || '').trim();
+  if (!api || !pin) { S.err = 'Enter the backend link and your PIN.'; return render(); }
+  S.api = api; S.pin = pin; S.err = ''; S.busy = true; render();
+  try { setData(await call('load')); store.set('planapi', api); store.set('planpin', pin); S.status = 'ready'; }
+  catch (err) { S.pin = ''; S.err = /wrong pin/i.test(err.message) ? 'That PIN was not accepted.' : err.message; }
+  S.busy = false; render();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && S.status === 'ready' && !$('.sheet')) refresh();
+});
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+
+boot();
+</script>
+</body>
+</html>
