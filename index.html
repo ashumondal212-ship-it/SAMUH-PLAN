@@ -430,10 +430,16 @@ function parseRows(raw) {
   const map = {}, errors = [];
   let dupes = 0;
   raw.forEach((r, i) => {
-    const plant = String(r[kp]).trim(), sku = String(r[ks]).trim(), qs = String(r[kq]).replace(/,/g, '').trim();
-    if (!plant && !sku && !qs) return;
+    const plant = String(r[kp]).trim(), sku = String(r[ks]).trim();
+    let qs = String(r[kq]).replace(/,/g, '').trim();
+    if (!plant && !sku && !qs) return;                       // fully blank row
+    if (qs === '' || /^(none|nil|na|n\/a|-+)$/i.test(qs)) qs = '0';   // blank or "none" means 0
     const qty = Number(qs);
-    if (!plant || !sku || qs === '' || !isFinite(qty) || qty < 0) { errors.push('Row ' + (i + 2) + ' needs a plant, a SKU and a quantity of 0 or more'); return; }
+    const row = 'Row ' + (i + 2) + ': ';
+    if (!plant) { errors.push(row + 'plant name is missing'); return; }
+    if (!sku) { errors.push(row + 'SKU is missing'); return; }
+    if (!isFinite(qty)) { errors.push(row + 'quantity "' + qs + '" is not a number'); return; }
+    if (qty < 0) { errors.push(row + 'quantity is negative'); return; }
     const pk = plant.toLowerCase();
     const pn = canon[pk] || (canon[pk] = plant);
     const key = pk + '|' + sku.toLowerCase();
